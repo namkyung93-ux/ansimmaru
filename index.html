@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>안심마루</title>
+  <link rel="stylesheet" as="style" crossorigin
+        href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+  <style>
+    :root {
+      --sage-light: #DDDFD1;
+      --sage-deep:  #9BA986;
+      --cream:      #EDDCAE;
+      --bg:         #F7F4EA;
+      --ink:        #4A5240;
+      --ink-soft:   #7A8270;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Pretendard Variable", Pretendard, -apple-system,
+                   BlinkMacSystemFont, "Apple SD Gothic Neo",
+                   "Malgun Gothic", "Noto Sans KR", sans-serif;
+      max-width: 520px; margin: 0 auto; padding: 32px 20px 60px;
+      background: var(--bg); color: var(--ink);
+      min-height: 100vh;
+    }
+    h1 {
+      font-size: 28px; margin: 0 0 6px;
+      color: var(--ink); letter-spacing: -0.5px;
+    }
+    .subtitle {
+      color: var(--ink-soft); margin: 0 0 28px; font-size: 15px;
+    }
+    .card {
+      background: #fff; border-radius: 24px; padding: 24px;
+      box-shadow: 0 4px 20px rgba(155, 169, 134, 0.12);
+    }
+    .input-group { margin: 14px 0; }
+    label {
+      display: block; margin-bottom: 8px;
+      font-weight: 600; font-size: 14px; color: var(--ink);
+    }
+    input, select {
+      width: 100%; padding: 14px 18px;
+      border: 1.5px solid var(--sage-light);
+      border-radius: 999px; font-size: 16px;
+      background: #fff; color: var(--ink);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      font-family: inherit;
+    }
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--sage-deep);
+      box-shadow: 0 0 0 3px rgba(155, 169, 134, 0.18);
+    }
+    select { appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='none' stroke='%239BA986' stroke-width='2' d='M1 1l5 5 5-5'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 18px center;
+      padding-right: 44px;
+    }
+    button {
+      background: var(--sage-deep); color: #fff;
+      padding: 16px 30px; border: none;
+      border-radius: 999px; font-size: 16px; font-weight: 600;
+      cursor: pointer; width: 100%; margin-top: 22px;
+      font-family: inherit;
+      transition: background 0.15s, transform 0.05s;
+    }
+    button:hover:not(:disabled) { background: #899676; }
+    button:active:not(:disabled) { transform: scale(0.98); }
+    button:disabled { background: #C7CDB9; cursor: not-allowed; }
+    .result-title {
+      font-size: 14px; font-weight: 600; color: var(--ink-soft);
+      margin: 28px 0 10px; padding-left: 4px;
+    }
+    #result {
+      padding: 22px 24px; background: #fff;
+      border-radius: 20px; min-height: 80px;
+      font-size: 15px; line-height: 1.6; color: var(--ink-soft);
+      border: 1.5px solid var(--sage-light);
+    }
+    #result.safe {
+      background: var(--sage-light);
+      border-color: var(--sage-deep);
+    }
+    #result.caution {
+      background: var(--cream);
+      border-color: #D4B97A;
+    }
+    #result.danger {
+      background: #F4D6CE;
+      border-color: #C97C68;
+    }
+    .level {
+      font-size: 20px; font-weight: 700; margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+    .level.safe    { color: #5A6B47; }
+    .level.caution { color: #8C6B2A; }
+    .level.danger  { color: #8C3F2A; }
+    .message { color: var(--ink); font-size: 16px; }
+    .raw { color: var(--ink-soft); font-size: 14px; white-space: pre-wrap; }
+
+    #toolLog {
+      padding: 22px 24px; background: #F4D6CE;
+      border: 1.5px solid #C97C68; border-radius: 20px;
+      color: var(--ink);
+    }
+    .tool-call + .tool-call {
+      margin-top: 14px; padding-top: 14px;
+      border-top: 1px dashed #C97C68;
+    }
+    .tool-call-header {
+      font-weight: 700; color: #8C3F2A; font-size: 15px;
+      margin-bottom: 8px; letter-spacing: -0.2px;
+    }
+    .tool-call-row { font-size: 14px; line-height: 1.65; }
+    .tool-call-label {
+      display: inline-block; min-width: 78px;
+      color: var(--ink-soft); font-weight: 500;
+    }
+    .tool-call-value { color: var(--ink); }
+    .tool-call-message {
+      margin-top: 6px; padding: 10px 14px;
+      background: #fff; border-radius: 12px;
+      color: var(--ink); font-size: 15px;
+    }
+  </style>
+</head>
+<body>
+  <h1>안심마루</h1>
+  <p class="subtitle">마루의 센서 데이터를 입력해주세요</p>
+
+  <div class="card">
+    <div class="input-group">
+      <label>심박수 (bpm)</label>
+      <input type="number" id="heart" value="80">
+    </div>
+
+    <div class="input-group">
+      <label>활동량</label>
+      <select id="activity">
+        <option value="낮음">낮음</option>
+        <option value="보통" selected>보통</option>
+        <option value="높음">높음</option>
+      </select>
+    </div>
+
+    <div class="input-group">
+      <label>체온 (°C)</label>
+      <input type="number" id="temp" step="0.1" value="38.5">
+    </div>
+
+    <button id="checkBtn">마루 상태 확인하기</button>
+  </div>
+
+  <div class="result-title">안심마루의 분석</div>
+  <div id="result">버튼을 눌러주세요</div>
+
+  <div class="result-title" id="toolLogTitle" style="display: none;">긴급 알림 발송 기록</div>
+  <div id="toolLog" style="display: none;"></div>
+
+  <script>
+    const API_KEY = "";
+
+    const SYSTEM_PROMPT = [
+      "[ROLE - 두 명이 일하는 팀]",
+      "",
+      "너는 두 명의 전문가가 협업하는 팀이야.",
+      "센서 데이터를 받으면, 먼저 <writer>가 1차 답안을 만들고,",
+      "그 다음 <editor>가 검토해서 최종 답안을 결정해.",
+      "",
+      "<writer>",
+      "역할: 반려견 위험도 분류 전문가",
+      "- 마루의 센서 데이터(심박·활동량·체온)를 보고",
+      "- 위험도(안심/주의/위험)를 판단하고",
+      "- 보호자에게 보낼 한 줄 메시지를 작성한다",
+      "- 따뜻하고 짧게, 20자 이내로 쓴다",
+      "",
+      "출력 형식:",
+      "위험도: [안심/주의/위험]",
+      "메시지: (한 줄)",
+      "</writer>",
+      "",
+      "<editor>",
+      "역할: 시니어 반려동물 케어 컨설턴트 (10년차)",
+      "- writer의 답안을 비판적으로 검토한다",
+      "- 다음을 체크한다:",
+      "  1. 위험도 판단이 데이터와 맞는가?",
+      "  2. 메시지가 너무 가볍거나 무겁지 않은가?",
+      "  3. 의학적 진단처럼 보이는 표현이 없는가?",
+      "  4. 보호자가 30초 안에 이해할 수 있는가?",
+      "- 문제가 있으면 수정한다",
+      "- OK면 그대로 통과시킨다",
+      "",
+      "editor 검토 후:",
+      "- writer 답이 충분하면 → 그대로 통과",
+      "- 문제가 있으면 → 수정한 버전을 최종으로",
+      "</editor>",
+      "",
+      "[INPUT]",
+      "반려견의 웨어러블 센서 데이터:",
+      "- 심박수 (bpm)",
+      "- 활동량 (낮음/보통/높음)",
+      "- 체온 (°C)",
+      "",
+      "[RULES]",
+      "- 절대 의학적 진단은 하지 마",
+      "- 메시지는 따뜻하고 짧게 (20자 이내)",
+      "- 위험 단계일 때만 \"수의사 상담 권장\" 추가",
+      "- 일상어 사용, 의학 용어 금지",
+      "",
+      "[OUTPUT 최종]",
+      "editor가 고른 최종 답안만 출력:",
+      "",
+      "위험도: [안심/주의/위험]",
+      "메시지: (한 줄)",
+      "",
+      "(중간 과정인 writer 초안이나 editor 코멘트는 출력하지 마)",
+      "",
+      "[EXAMPLES]",
+      "입력: 심박 80, 활동량 보통, 체온 38.5",
+      "[writer 초안]",
+      "위험도: 안심",
+      "메시지: 편안하게 자고 있어요",
+      "[editor 검토]",
+      "OK. 통과.",
+      "[최종 출력]",
+      "위험도: 안심",
+      "메시지: 편안하게 자고 있어요",
+      "",
+      "입력: 심박 130, 활동량 거의 없음, 체온 39.8",
+      "[writer 초안]",
+      "위험도: 위험",
+      "메시지: 열나는 것 같아요. 병원 가세요!",
+      "[editor 검토]",
+      "\"열나는 것 같아요\"는 의학적 진단처럼 들림. \"병원 가세요\"는 단정적.",
+      "수정 → \"체온 높고 움직임 적어요. 수의사 상담 권장\"",
+      "[최종 출력]",
+      "위험도: 위험",
+      "메시지: 체온 높고 움직임 적어요. 수의사 상담 권장",
+      "",
+      "[EDGE CASE]",
+      "- 데이터 일부 비어있으면 있는 값으로만 판단",
+      "- 모든 데이터 비어있으면: \"위험도: 확인불가 / 메시지: 센서 연결 확인해주세요\"",
+      "- 비현실적 수치는 센서 오류로 처리",
+      "",
+      "[TOOL USE — 위험 시 자동 SMS]",
+      "editor가 최종 위험도를 '위험'으로 확정한 경우에만,",
+      "send_emergency_alert_to_family 도구를 호출해 가족에게 긴급 SMS를 보낸다.",
+      "안심·주의에서는 절대 도구를 호출하지 마 — 텍스트 답안만 출력한다.",
+      "",
+      "호출 시 인자:",
+      "- confirmed_risk_level: '위험' (고정)",
+      "- risk_indicators: 입력 받은 심박/활동량/체온 그대로 (heart_bpm, activity, temp_celsius)",
+      "- owner_unresponsive_minutes: 5 (데모에서는 항상 5 — 보호자 5분 무응답 가정)",
+      "- family_priority: 1 (엄마부터 시도. 첫 호출은 항상 1)",
+      "- message: 마루의 상태와 '확인 부탁드린다'는 요청을 100자 이내 한국어 일상어로",
+      "- trigger_event_id: 'maru-' + 임의의 고유 문자열 (예: 'maru-20260513-001')",
+      "",
+      "도구를 호출해도 텍스트 답안(위험도 + 메시지)은 그대로 함께 출력한다."
+    ].join("\n");
+
+    const TOOLS = [{
+      name: "send_emergency_alert_to_family",
+      description: "마루의 상태가 '위험' 단계로 판단되고, 보호자(이은후)가 1차 푸시 알림 후 5분 이상 무응답일 때만 호출한다. 미리 등록된 안심 서클의 우선순위에 따라 시스템에 저장된 번호로 긴급 SMS를 자동 발송한다.\n\n호출 전 반드시 확인:\n1. 현재 위험도가 정확히 '위험'인가? (안심·주의에서는 절대 호출 금지)\n2. 보호자에게 1차 알림이 발송된 뒤 5분 이상 무응답 상태인가?\n3. 동일 trigger_event_id로 이미 호출한 적이 있는가? (중복 발송 금지)\n4. family_priority 1번부터 순차 시도 — 이전 우선순위 발송이 실패했을 때만 다음 순위 호출.\n\n금지:\n- 의학적 진단·처방을 message에 포함하지 말 것\n- 가족 연락처를 AI가 직접 지정하지 않는다 (시스템 등록 번호만 사용)\n- 즉시·되돌릴 수 없는 작업. 조건이 불확실하면 호출하지 말고 보호자에게 한 번 더 푸시 알림을 보낼 것.",
+      input_schema: {
+        type: "object",
+        properties: {
+          confirmed_risk_level: {
+            type: "string",
+            enum: ["위험"],
+            description: "현재 위험도. '위험'만 허용 — 안전장치용 명시적 확인."
+          },
+          risk_indicators: {
+            type: "object",
+            description: "위험 판단 근거가 된 센서 값. 오발송 사후 추적용.",
+            properties: {
+              heart_bpm: { type: "number", description: "심박수 (bpm)" },
+              activity: { type: "string", enum: ["낮음", "보통", "높음"], description: "활동량" },
+              temp_celsius: { type: "number", description: "체온 (°C)" }
+            },
+            required: ["heart_bpm", "activity", "temp_celsius"]
+          },
+          owner_unresponsive_minutes: {
+            type: "integer",
+            minimum: 5,
+            description: "1차 알림 전송 후 경과 분. 5 미만이면 호출 금지."
+          },
+          family_priority: {
+            type: "integer",
+            enum: [1, 2, 3],
+            description: "안심 서클 우선순위 (1=엄마, 2=동생, 3=친구). 반드시 1부터 시도하고, 직전 호출이 실패한 경우에만 다음 순위로 재호출."
+          },
+          message: {
+            type: "string",
+            maxLength: 100,
+            description: "SMS 본문. 한국어, 100자 이내, 일상어. 마루의 상태와 '확인 부탁드린다'는 요청을 짧게. 의학 용어·진단 표현 금지."
+          },
+          trigger_event_id: {
+            type: "string",
+            description: "이번 위험 이벤트의 고유 ID. 동일 이벤트 중복 SMS 방지용. 같은 위험 상황이라면 재호출 시에도 동일 ID 유지."
+          }
+        },
+        required: [
+          "confirmed_risk_level",
+          "risk_indicators",
+          "owner_unresponsive_minutes",
+          "family_priority",
+          "message",
+          "trigger_event_id"
+        ]
+      }
+    }];
+
+    const FAMILY = {
+      1: { name: "엄마",   phone: "010-1234-5678" },
+      2: { name: "동생",   phone: "010-2345-6789" },
+      3: { name: "친구",   phone: "010-3456-7890" }
+    };
+
+    // 같은 trigger_event_id로 두 번 호출되는 일을 방지 (도구 description의 중복 발송 금지 규칙)
+    const sentEvents = new Set();
+
+    function handleEmergencyAlert(input) {
+      console.log("[도구 호출됨] send_emergency_alert_to_family", input);
+
+      if (input.trigger_event_id && sentEvents.has(input.trigger_event_id)) {
+        console.warn("[안심마루] 중복 호출 무시:", input.trigger_event_id);
+        return;
+      }
+      if (input.trigger_event_id) sentEvents.add(input.trigger_event_id);
+
+      const member = FAMILY[input.family_priority];
+      if (!member) {
+        alert("[시뮬레이션] 알 수 없는 가족 우선순위: " + input.family_priority);
+        return;
+      }
+
+      appendToolLog(input, member);
+      alert(member.name + "(" + member.phone + ")에게 SMS 발송됨: " + input.message);
+    }
+
+    function appendToolLog(input, member) {
+      const titleEl = document.getElementById("toolLogTitle");
+      const logEl   = document.getElementById("toolLog");
+      titleEl.style.display = "";
+      logEl.style.display = "";
+
+      const card = document.createElement("div");
+      card.className = "tool-call";
+
+      const header = document.createElement("div");
+      header.className = "tool-call-header";
+      header.textContent = "[SMS 발송 시뮬레이션] " + member.name + "에게";
+      card.appendChild(header);
+
+      const rows = [
+        ["수신자",     member.name + " (" + member.phone + ")"],
+        ["우선순위",   String(input.family_priority || "")],
+        ["무응답",     (input.owner_unresponsive_minutes != null ? input.owner_unresponsive_minutes + "분" : "")],
+        ["이벤트 ID", input.trigger_event_id || ""],
+        ["발송 시각",  new Date().toLocaleTimeString("ko-KR")]
+      ];
+      for (const [label, value] of rows) {
+        if (!value) continue;
+        const r = document.createElement("div");
+        r.className = "tool-call-row";
+        const l = document.createElement("span");
+        l.className = "tool-call-label";
+        l.textContent = label;
+        const v = document.createElement("span");
+        v.className = "tool-call-value";
+        v.textContent = value;
+        r.appendChild(l);
+        r.appendChild(v);
+        card.appendChild(r);
+      }
+
+      const msg = document.createElement("div");
+      msg.className = "tool-call-message";
+      msg.textContent = input.message || "(메시지 없음)";
+      card.appendChild(msg);
+
+      logEl.appendChild(card);
+    }
+
+    function clearToolLog() {
+      const titleEl = document.getElementById("toolLogTitle");
+      const logEl   = document.getElementById("toolLog");
+      logEl.innerHTML = "";
+      titleEl.style.display = "none";
+      logEl.style.display = "none";
+    }
+
+    const btn = document.getElementById("checkBtn");
+    const resultEl = document.getElementById("result");
+
+    btn.addEventListener("click", checkMaru);
+
+    async function checkMaru() {
+      const heart = document.getElementById("heart").value;
+      const activity = document.getElementById("activity").value;
+      const temp = document.getElementById("temp").value;
+
+      const userMessage =
+        "심박수: " + heart + " bpm, " +
+        "활동량: " + activity + ", " +
+        "체온: " + temp + "°C";
+
+      btn.disabled = true;
+      resultEl.className = "";
+      resultEl.textContent = "분석 중...";
+      clearToolLog();
+
+      try {
+        const payload = {
+          model: "claude-haiku-4-5-20251001",
+          max_tokens: 800,
+          system: SYSTEM_PROMPT,
+          tools: TOOLS,
+          messages: [{ role: "user", content: userMessage }]
+        };
+
+        // 한글이 포함된 body는 TextEncoder로 UTF-8 바이트로 직접 인코딩해서 보낸다.
+        // 일부 브라우저가 body 문자열에서 ISO-8859-1 검증을 트리거해 오류를 내는 것을 우회.
+        const bodyBytes = new TextEncoder().encode(JSON.stringify(payload));
+
+        const response = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": API_KEY,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true"
+          },
+          body: bodyBytes
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          const msg = (data && data.error && data.error.message) || ("HTTP " + response.status);
+          throw new Error(msg);
+        }
+
+        // content는 블록 배열. text 블록과 tool_use 블록이 섞여서 올 수 있음.
+        let text = "";
+        const toolCalls = [];
+        for (const block of (data.content || [])) {
+          if (block.type === "text") text += block.text;
+          else if (block.type === "tool_use") toolCalls.push(block);
+        }
+
+        renderResult(text);
+
+        for (const call of toolCalls) {
+          if (call.name === "send_emergency_alert_to_family") {
+            handleEmergencyAlert(call.input || {});
+          }
+        }
+      } catch (error) {
+        resultEl.className = "";
+        resultEl.textContent = "오류: " + error.message;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function renderResult(text) {
+      const levelMatch   = text.match(/위험도\s*:\s*([안심주의위험]+)/);
+      const messageMatch = text.match(/메시지\s*:\s*([\s\S]+)$/);
+
+      const level   = levelMatch   ? levelMatch[1].trim()   : "";
+      const message = messageMatch ? messageMatch[1].trim() : text.trim();
+
+      const klass =
+        level === "안심" ? "safe" :
+        level === "주의" ? "caution" :
+        level === "위험" ? "danger" : "";
+
+      resultEl.className = klass;
+      resultEl.innerHTML = "";
+
+      if (level) {
+        const lvl = document.createElement("div");
+        lvl.className = "level " + klass;
+        lvl.textContent = level;
+        resultEl.appendChild(lvl);
+
+        const msg = document.createElement("div");
+        msg.className = "message";
+        msg.textContent = message;
+        resultEl.appendChild(msg);
+      } else {
+        const raw = document.createElement("div");
+        raw.className = "raw";
+        raw.textContent = text;
+        resultEl.appendChild(raw);
+      }
+    }
+  </script>
+</body>
+</html>
